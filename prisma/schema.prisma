@@ -1,0 +1,485 @@
+// FunziToys Multi-Role E-Commerce Schema (SQLite)
+// Enums are represented as String with default values (SQLite has no native enums)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("CUSTOMER") // SUPER_ADMIN | ADMIN | OWNER | CUSTOMER
+  avatarUrl    String?
+  isVerified   Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  phone        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  customer      Customer?
+  owner         Owner?
+  sessions      Session[]
+  otpCodes      OTPVerification[]
+  notifications Notification[]
+  activityLogs  ActivityLog[]
+  addresses     Address[]
+  cartItems     CartItem[]
+  wishlistItems WishlistItem[]
+  reviews       Review[]
+  orders        Order[]
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@map("sessions")
+}
+
+model OTPVerification {
+  id        String   @id @default(cuid())
+  userId    String?
+  email     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@map("otp_verifications")
+}
+
+model Customer {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  dateOfBirth DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("customers")
+}
+
+model Owner {
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  storeName    String
+  storeSlug    String    @unique
+  logoUrl      String?
+  bannerUrl    String?
+  isApproved   Boolean   @default(false)
+  approvedAt   DateTime?
+  approvedById String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products    Product[]
+  permission  OwnerPermission?
+  storeSetting StoreSettings?
+
+  @@index([storeSlug])
+  @@map("owners")
+}
+
+model OwnerPermission {
+  id                String  @id @default(cuid())
+  ownerId           String  @unique
+  canManageProducts Boolean @default(true)
+  canManageOrders   Boolean @default(true)
+  canViewCustomers  Boolean @default(true)
+  canManageSettings Boolean @default(false)
+  canUploadImages   Boolean @default(true)
+  canViewAnalytics  Boolean @default(false)
+  canEditLanding    Boolean @default(false)
+
+  owner Owner @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@map("owner_permissions")
+}
+
+model OwnerRequest {
+  id           String   @id @default(cuid())
+  name         String
+  shopName     String
+  email        String
+  phone        String
+  businessType String
+  address      String?
+  message      String?
+  status       String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  reviewedById String?
+  reviewNote   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([status])
+  @@map("owner_requests")
+}
+
+model StoreSettings {
+  id           String   @id @default(cuid())
+  ownerId      String   @unique
+  primaryColor String   @default("#FF6B35")
+  tagline      String?
+  aboutText    String?
+  metaTitle    String?
+  metaDesc     String?
+  updatedAt    DateTime @updatedAt
+
+  owner Owner @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@map("store_settings")
+}
+
+model Address {
+  id        String   @id @default(cuid())
+  userId    String
+  label     String   @default("Home")
+  line1     String
+  line2     String?
+  city      String
+  state     String
+  pincode   String
+  country   String   @default("India")
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  imageUrl    String?
+  description String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+
+  @@index([slug])
+  @@map("categories")
+}
+
+model Brand {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  logoUrl     String?
+  description String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+
+  @@index([slug])
+  @@map("brands")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  price       Float
+  mrpPrice    Float?
+  sku         String?
+  badge       String?  // NEW | SALE | HOT | LIMITED | BESTSELLER
+  brandId     String?
+  categoryId  String?
+  ownerId     String?
+  isActive    Boolean  @default(true)
+  isApproved  Boolean  @default(true)
+  stock       Int      @default(0)
+  rating      Float    @default(0)
+  reviewCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  brand    Brand?        @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  category Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  owner    Owner?        @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  images   ProductImage[]
+  reviews       Review[]
+  wishlistItems WishlistItem[]
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+
+  @@index([slug])
+  @@index([ownerId])
+  @@index([categoryId])
+  @@index([brandId])
+  @@map("products")
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  url       String
+  alt       String?
+  sortOrder Int      @default(0)
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+model CartItem {
+  id         String   @id @default(cuid())
+  userId     String?
+  productId  String
+  quantity   Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("cart_items")
+}
+
+model WishlistItem {
+  id         String   @id @default(cuid())
+  userId     String
+  productId  String
+  createdAt  DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@map("wishlist_items")
+}
+
+model Order {
+  id            String   @id @default(cuid())
+  orderNumber   String   @unique
+  userId        String
+  addressId     String?
+  subtotal      Float
+  shippingFee   Float    @default(0)
+  discount      Float    @default(0)
+  total         Float
+  status        String   @default("PENDING") // PENDING CONFIRMED PROCESSING SHIPPED DELIVERED CANCELLED REFUNDED
+  paymentStatus String   @default("PENDING") // PENDING PAID FAILED REFUNDED
+  paymentMethod String   @default("COD") // COD UPI CARD
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user    User           @relation(fields: [userId], references: [id])
+  address Address?       @relation(fields: [addressId], references: [id])
+  items   OrderItem[]
+  history OrderStatusHistory[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([orderNumber])
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String @id @default(cuid())
+  orderId     String
+  productId   String
+  productName String
+  productImage String?
+  price       Float
+  quantity    Int
+  total       Float
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model OrderStatusHistory {
+  id        String   @id @default(cuid())
+  orderId   String
+  status    String
+  note      String?
+  createdAt DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_status_history")
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  productId  String
+  userId     String
+  rating     Int
+  comment    String?
+  isApproved Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, userId])
+  @@index([productId])
+  @@map("reviews")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  body      String
+  type      String   @default("SYSTEM") // ORDER PRODUCT CUSTOMER SYSTEM ALERT
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model HeroBanner {
+  id        String   @id @default(cuid())
+  title     String
+  subtitle  String?
+  eyebrow   String?
+  imageUrl  String?
+  ctaText   String?
+  ctaLink   String?
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("hero_banners")
+}
+
+model SiteSettings {
+  id              String   @id @default("singleton")
+  siteName        String   @default("FunziToys")
+  tagline         String?
+  logoUrl         String?
+  faviconUrl      String?
+  primaryColor    String   @default("#FF6B35")
+  accentColor     String   @default("#FFA500")
+  whatsappNum     String?
+  supportEmail    String?
+  phone           String?
+  address         String?
+  facebook        String?
+  instagram       String?
+  twitter         String?
+  youtube         String?
+  footerText      String?
+  copyrightText   String?
+  metaTitle       String?
+  metaDesc        String?
+  metaKeywords    String?
+  // Theme
+  fontHeading     String   @default("Inter")
+  fontBody        String   @default("Inter")
+  headerStyle     String   @default("standard")
+  footerStyle     String   @default("standard")
+  cardStyle       String   @default("standard")
+  buttonStyle     String   @default("rounded")
+  // Customer landing content
+  customerHeroTitle    String?
+  customerHeroSubtitle String?
+  customerHeroImage    String?
+  customerAboutTitle   String?
+  customerAboutText    String?
+  // Owner landing content
+  ownerHeroTitle    String?
+  ownerHeroSubtitle String?
+  ownerHeroImage    String?
+  ownerAboutTitle   String?
+  ownerAboutText    String?
+  updatedAt         DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+model MediaAsset {
+  id        String   @id @default(cuid())
+  url       String
+  filename  String
+  mimeType  String?
+  size      Int?
+  alt       String?
+  uploadedById String?
+  createdAt DateTime @default(now())
+
+  @@map("media_assets")
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String?
+  entityId  String?
+  metadata  String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@map("activity_logs")
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  event     String
+  userId    String?
+  productId String?
+  orderId   String?
+  metadata  String?
+  createdAt DateTime @default(now())
+
+  @@index([event])
+  @@index([createdAt])
+  @@map("analytics_events")
+}
