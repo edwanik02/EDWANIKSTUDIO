@@ -4,31 +4,75 @@ import { verifyPassword, createSession, setSessionCookie, getSessionUser } from 
 import { ok, err, getBody, logActivity } from "@/lib/api";
 
 export async function POST(req: NextRequest) {
-  const body = await getBody(req);
-  const { email, password } = body;
-  if (!email || !password) return err("Email and password are required", 422);
+  try {
+    const body = await getBody(req);
+    const { email, password } = body;
+    if (!email || !password) {
+      return err("Email and password are required", 422);
+    }
 
-  const user = await db.user.findUnique({ where: { email: String(email).toLowerCase() } });
-  if (!user) return err("Invalid email or password", 401);
-  if (!user.isActive) return err("Account is disabled. Contact support.", 403);
+    const cleanEmail = String(email).trim().toLowerCase();
+    const cleanPassword = String(password);
 
-  const valid = await verifyPassword(password, user.passwordHash);
-  if (!valid) return err("Invalid email or password", 401);
+    if (!cleanEmail || !cleanPassword) {
+      return err("Email and password cannot be empty", 422);
+    }
 
-  const { token, expiresAt } = await createSession(user.id, req);
-  await setSessionCookie(token, expiresAt);
-  await logActivity(user.id, "LOGIN", "user", user.id, undefined, req.headers.get("x-forwarded-for") || undefined);
+    const user = await db.user.findUnique({
+      where: { email: cleanEmail },
+    });
 
-  return ok({
-    user: {
-      id: user.id, email: user.email, name: user.name, role: user.role,
-      avatarUrl: user.avatarUrl, isVerified: user.isVerified,
-    },
-  });
+    if (!user) {
+      return err("Invalid email or password", 401);
+    }
+
+    if (!user.isActive) {
+      return err("Account is disabled. Contact support.", 403);
+    }
+
+    if (!user.passwordHash) {
+      return err("Invalid email or password", 401);
+    }
+
+    const valid = await verifyPassword(cleanPassword, user.passwordHash);
+    if (!valid) {
+      return err("Invalid email or password", 401);
+    }
+
+    const { token, expiresAt } = await createSession(user.id, req);
+    await setSessionCookie(token, expiresAt);
+    await logActivity(
+      user.id,
+      "LOGIN",
+      "user",
+      user.id,
+      undefined,
+      req.headers.get("x-forwarded-for") || undefined
+    );
+
+    return ok({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        avatarUrl: user.avatarUrl,
+        isVerified: user.isVerified,
+      },
+      message: "Login successful",
+    });
+  } catch (error: any) {
+    console.error("Login API exception:", error);
+    return err("An unexpected server error occurred during login. Please try again.", 500);
+  }
 }
 
 export async function GET() {
-  const user = await getSessionUser();
-  if (!user) return ok({ user: null });
-  return ok({ user });
+  try {
+    const user = await getSessionUser();
+    return ok({ user: user || null });
+  } catch (error) {
+    console.error("GET auth session error:", error);
+    return ok({ user: null });
+  }
 }

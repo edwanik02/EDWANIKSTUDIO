@@ -21,11 +21,22 @@ export interface SessionUser {
 }
 
 export async function hashPassword(password: string): Promise<string> {
+  if (!password || typeof password !== "string") {
+    throw new Error("Invalid password provided for hashing");
+  }
   return bcrypt.hash(password, 10);
 }
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return bcrypt.compare(password, hash);
+  if (!password || !hash || typeof password !== "string" || typeof hash !== "string") {
+    return false;
+  }
+  try {
+    return await bcrypt.compare(password, hash);
+  } catch (error) {
+    console.error("Error verifying password hash:", error);
+    return false;
+  }
 }
 
 export function createToken(userId: string): string {

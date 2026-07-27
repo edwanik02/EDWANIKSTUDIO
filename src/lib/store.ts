@@ -7,7 +7,10 @@ export async function api<T = any>(path: string, opts: RequestInit = {}): Promis
     ...opts,
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((data as any)?.error || `Request failed (${res.status})`);
+  if (!res.ok) {
+    const errorMsg = (data as any)?.error || (data as any)?.message || (data as any)?.detail || `Request failed (${res.status})`;
+    throw new Error(errorMsg);
+  }
   return data as T;
 }
 
