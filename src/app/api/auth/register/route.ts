@@ -63,7 +63,12 @@ export async function POST(req: NextRequest) {
       message: "Account created successfully. Please verify your email with the OTP sent.",
     });
   } catch (error: any) {
-    console.error("Register API exception:", error);
+    console.error("[Auth Register Error]:", {
+      name: error?.name,
+      message: error?.message,
+      code: error?.code,
+      stack: error?.stack,
+    });
     if (error?.code === "P2002") {
       return err("An account with this email already exists. Please log in.", 409);
     }
