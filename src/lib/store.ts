@@ -180,6 +180,7 @@ export const useUI = create<UIState>((set) => ({
 
 // Navigation helper using searchParams on the single route
 export function navigate(params: Record<string, string | undefined>, replace = false) {
+  if (typeof window === "undefined") return;
   const url = new URL(window.location.href);
   for (const [k, v] of Object.entries(params)) {
     if (v === undefined || v === "") url.searchParams.delete(k);
@@ -191,6 +192,7 @@ export function navigate(params: Record<string, string | undefined>, replace = f
 }
 
 export function getParams(): Record<string, string> {
+  if (typeof window === "undefined") return {};
   const url = new URL(window.location.href);
   const obj: Record<string, string> = {};
   url.searchParams.forEach((v, k) => (obj[k] = v));

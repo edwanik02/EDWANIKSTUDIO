@@ -61,30 +61,41 @@ export async function destroySession(token: string) {
 }
 
 export async function getSessionUser(): Promise<SessionUser | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
-  const payload = verifyToken(token);
-  if (!payload) return null;
-  const session = await db.session.findUnique({
-    where: { token },
-    include: { user: { include: { owner: true } } },
-  });
-  if (!session || session.expiresAt < new Date()) {
-    if (session) await db.session.delete({ where: { id: session.id } });
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get(SESSION_COOKIE)?.value;
+    if (!token) return null;
+    const payload = verifyToken(token);
+    if (!payload) return null;
+    const session = await db.session.findUnique({
+      where: { token },
+      include: { user: { include: { owner: true } } },
+    });
+    if (!session || session.expiresAt < new Date()) {
+      if (session) {
+        try {
+          await db.session.delete({ where: { id: session.id } });
+        } catch {
+          // ignore session delete error
+        }
+      }
+      return null;
+    }
+    const u = session.user;
+    if (!u.isActive) return null;
+    return {
+      id: u.id,
+      email: u.email,
+      name: u.name,
+      role: u.role as Role,
+      avatarUrl: u.avatarUrl,
+      isVerified: u.isVerified,
+      ownerId: u.owner?.id ?? null,
+    };
+  } catch (error) {
+    console.error("Error fetching session user:", error);
     return null;
   }
-  const u = session.user;
-  if (!u.isActive) return null;
-  return {
-    id: u.id,
-    email: u.email,
-    name: u.name,
-    role: u.role as Role,
-    avatarUrl: u.avatarUrl,
-    isVerified: u.isVerified,
-    ownerId: u.owner?.id ?? null,
-  };
 }
 
 export async function setSessionCookie(token: string, expiresAt: Date) {
