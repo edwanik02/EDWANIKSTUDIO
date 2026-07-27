@@ -1,5 +1,5 @@
-// FunziToys Multi-Role E-Commerce Schema (SQLite)
-// Enums are represented as String with default values (SQLite has no native enums)
+// FunziToys Multi-Role E-Commerce Schema
+// Configured for PostgreSQL (Supabase / Managed PostgreSQL) with connection pooling support
 
 generator client {
   provider = "prisma-client-js"
