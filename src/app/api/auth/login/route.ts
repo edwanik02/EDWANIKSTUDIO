@@ -62,12 +62,7 @@ export async function POST(req: NextRequest) {
       message: "Login successful",
     });
   } catch (error: any) {
-    console.error("[Auth Login Error]:", {
-      name: error?.name,
-      message: error?.message,
-      code: error?.code,
-      stack: error?.stack,
-    });
+    console.error("Login API exception:", error);
     return err("An unexpected server error occurred during login. Please try again.", 500);
   }
 }

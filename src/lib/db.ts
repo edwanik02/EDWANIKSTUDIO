@@ -7,19 +7,18 @@ const globalForPrisma = globalThis as unknown as {
 
 function getDatabaseUrl(): string {
   const envUrl = process.env.DATABASE_URL
-  if (envUrl && (envUrl.startsWith('postgresql://') || envUrl.startsWith('postgres://'))) {
+  if (envUrl && envUrl.startsWith('file:')) {
     return envUrl
   }
-  if (envUrl && envUrl.startsWith('file:')) {
-    if (envUrl.startsWith('file:/')) {
-      return envUrl
-    }
-    const relativePath = envUrl.replace(/^file:/, '')
-    // Ensure path resolves to absolute file path
-    return `file:${path.resolve(process.cwd(), relativePath)}`
-  }
-  // Default fallback for local dev SQLite
-  return `file:${path.resolve(process.cwd(), 'prisma/db/custom.db')}`
+  const dbPath = path.resolve(process.cwd(), 'db', 'custom.db')
+  return `file:${dbPath}`
+}
+
+const dbUrl = getDatabaseUrl()
+
+// Ensure process.env.DATABASE_URL is a valid file URL for Prisma engine internally
+if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith('file:')) {
+  process.env.DATABASE_URL = dbUrl
 }
 
 export const db =
@@ -27,7 +26,7 @@ export const db =
   new PrismaClient({
     datasources: {
       db: {
-        url: getDatabaseUrl(),
+        url: dbUrl,
       },
     },
     log: process.env.NODE_ENV === 'production' ? ['error'] : ['error', 'warn'],
