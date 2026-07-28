@@ -51,8 +51,8 @@ export async function GET() {
       DATABASE_URL: process.env.DATABASE_URL ? (isPostgres ? "PostgreSQL (Supabase)" : "SQLite (Local)") : "Missing",
     },
     instructions: {
-      step1: "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in environment variables",
-      step2: "Set DATABASE_URL to your Supabase PostgreSQL connection string (postgresql://postgres:[PASSWORD]@db.[REF].supabase.co:6543/postgres)",
+      step1: "Set NEXT_PUBLIC_SUPABASE_URL=https://kmmrshhclmcgtofrmzxl.supabase.co and NEXT_PUBLIC_SUPABASE_ANON_KEY in environment variables",
+      step2: "Set DATABASE_URL=postgresql://postgres:[YOUR-PASSWORD]@db.kmmrshhclmcgtofrmzxl.supabase.co:5432/postgres",
       step3: "Run 'npm run db:push' or update provider to postgresql in prisma/schema.prisma",
     },
   });
