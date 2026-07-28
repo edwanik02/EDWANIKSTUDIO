@@ -52,16 +52,19 @@ export async function POST(req: NextRequest) {
     await setSessionCookie(token, expiresAt);
     await logActivity(user.id, "REGISTER", "user", user.id, undefined, req.headers.get("x-forwarded-for") || undefined);
 
-    return ok({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        isVerified: user.isVerified,
+    return ok(
+      {
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          isVerified: user.isVerified,
+        },
+        message: "Account created successfully. Please verify your email with the OTP sent.",
       },
-      message: "Account created successfully. Please verify your email with the OTP sent.",
-    });
+      201
+    );
   } catch (error: any) {
     console.error("Register API exception:", error);
     if (error?.code === "P2002") {

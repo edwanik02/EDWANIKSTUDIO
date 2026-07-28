@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { cookies } from "next/headers";
 import { clearSessionCookie, getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ok } from "@/lib/api";
