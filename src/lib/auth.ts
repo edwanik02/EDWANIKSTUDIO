@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import { cookies } from "next/headers";
 import { db } from "./db";
 import { NextRequest } from "next/server";
@@ -40,7 +41,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 export function createToken(userId: string): string {
-  return jwt.sign({ sub: userId }, JWT_SECRET, { expiresIn: `${SESSION_DAYS}d` });
+  return jwt.sign({ sub: userId, jti: crypto.randomUUID() }, JWT_SECRET, { expiresIn: `${SESSION_DAYS}d` });
 }
 
 export function verifyToken(token: string): { sub: string } | null {

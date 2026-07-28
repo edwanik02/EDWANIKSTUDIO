@@ -12,10 +12,9 @@ function getDatabaseUrl(): string {
     return envUrl;
   }
 
-  const projectDbPath = path.resolve(process.cwd(), "db", "custom.db");
-
   // On Vercel or serverless, copy SQLite DB to /tmp so write operations succeed
   if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    const projectDbPath = path.resolve(process.cwd(), "db", "custom.db");
     const tmpDbPath = path.join("/tmp", "custom.db");
     if (!fs.existsSync(tmpDbPath) && fs.existsSync(projectDbPath)) {
       try {
@@ -29,7 +28,7 @@ function getDatabaseUrl(): string {
     }
   }
 
-  return `file:${projectDbPath}`;
+  return "file:./db/custom.db";
 }
 
 const dbUrl = getDatabaseUrl();
