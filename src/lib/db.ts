@@ -15,10 +15,11 @@ function getDatabaseUrl(): string {
       return envUrl
     }
     const relativePath = envUrl.replace(/^file:/, '')
+    // Ensure path resolves to absolute file path
     return `file:${path.resolve(process.cwd(), relativePath)}`
   }
   // Default fallback for local dev SQLite
-  return `file:${path.resolve(process.cwd(), 'db/custom.db')}`
+  return `file:${path.resolve(process.cwd(), 'prisma/db/custom.db')}`
 }
 
 export const db =
