@@ -14,7 +14,7 @@ function getDatabaseUrl(): string {
 
   // On Vercel or serverless, copy SQLite DB to /tmp so write operations succeed
   if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
-    const projectDbPath = path.resolve(process.cwd(), "db", "custom.db");
+    const projectDbPath = path.resolve(process.cwd(), "prisma", "db", "custom.db");
     const tmpDbPath = path.join("/tmp", "custom.db");
     if (!fs.existsSync(tmpDbPath) && fs.existsSync(projectDbPath)) {
       try {
